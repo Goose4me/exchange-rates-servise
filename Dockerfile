@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go app
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o helloworld .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o gses2.app .
 
 # Start a new stage from scratch
 FROM alpine:latest  
@@ -22,10 +22,10 @@ FROM alpine:latest
 WORKDIR /root/
 
 # Copy the Pre-built binary file from the previous stage
-COPY --from=builder /app/helloworld .
+COPY --from=builder /app/gses2.app .
 
 # Expose port 8080 to the outside world
 EXPOSE 8080
 
 # Command to run the executable
-CMD ["./helloworld"]
+CMD ["./gses2.app"]
