@@ -2,10 +2,12 @@ package api
 
 import (
 	"fmt"
+	"log"
 
 	"net/http"
 
 	"gses2.app/database"
+	"gses2.app/mail"
 	"gses2.app/models"
 	"gses2.app/rate"
 )
@@ -29,6 +31,38 @@ func handleRate(w http.ResponseWriter, r *http.Request) {
 		if _, err := w.Write([]byte(currencyRate)); err != nil {
 			http.Error(w, genericErrorMsg, http.StatusInternalServerError)
 		}
+	}
+}
+
+func subs(w http.ResponseWriter, r *http.Request) {
+	var emails []string
+
+	getSubscribersEmails(&emails)
+
+	currencyRate, err := rate.GetCurrencyRateFor("usd", "uah")
+
+	if err != nil {
+		http.Error(w, currencyApiErrorMsg, http.StatusBadRequest)
+
+		return
+	}
+
+	subject := "Exchange Rates"
+	log.Print(emails)
+
+	log.Printf("SendMails %s %s", subject, currencyRate)
+	mail.SendMails(&emails, &subject, &currencyRate)
+}
+func getSubscribersEmails(outputEmails *[]string) {
+	if outputEmails == nil {
+		return
+	}
+
+	var subscribers []models.Subscriber
+	database.DB.Db.Find(&subscribers)
+
+	for _, subscriber := range subscribers {
+		(*outputEmails) = append((*outputEmails), subscriber.Email)
 	}
 }
 
@@ -77,6 +111,7 @@ func handleSubscription(w http.ResponseWriter, r *http.Request) {
 func StartServer(port string) error {
 	http.HandleFunc("/api/rate", handleRate)
 	http.HandleFunc("/api/subscribe", handleSubscription)
+	http.HandleFunc("/api/subscribers", subs)
 
 	// Start the HTTP server on port
 	fmt.Printf("Server starting on port " + port + "...\n")
